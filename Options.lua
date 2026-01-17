@@ -66,7 +66,11 @@ end
 function frame:CreateOptions()
 	local title = self:CreateFontString(nil, nil, "GameFontNormalLarge")
 	title:SetPoint("TOPLEFT", 16, -16)
-	title:SetText("Peddler v5.0")
+	title:SetText("Peddler v5.1")
+	
+	local updateCredit = self:CreateFontString(nil, nil, "GameFontNormalSmall")
+	updateCredit:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -5)
+	updateCredit:SetText("Updated for Anniversary by Icewitts - Spineshatter")
 
 	local sellLimit = createCheckBox(self, title, 1, SellLimit, "Sell Limit", "Limits the amount of items sold in one go, so you may buy all items back.")
 	sellLimit:SetScript("PostClick", function(self, button, down)
@@ -167,10 +171,35 @@ function frame:CreateOptions()
 	if self.refresh ~=nil then self:refresh() end
 end
 
-InterfaceOptions_AddCategory(frame)
-
--- Handling Peddler's options.
-SLASH_PEDDLER_COMMAND1 = '/peddler'
-SlashCmdList['PEDDLER_COMMAND'] = function(command)
-	InterfaceOptionsFrame_OpenToCategory('Peddler')
+-- Handle both old and new settings API
+if Settings and Settings.RegisterCanvasLayoutCategory then
+	-- Modern API (Retail/Anniversary)
+	local category, layout = Settings.RegisterCanvasLayoutCategory(frame, frame.name)
+	category.ID = frame.name
+	Settings.RegisterAddOnCategory(category)
+	
+	-- Handling Peddler's options.
+	SLASH_PEDDLER_COMMAND1 = '/peddler'
+	SlashCmdList['PEDDLER_COMMAND'] = function(command)
+		Settings.OpenToCategory(category.ID)
+	end
+elseif InterfaceOptions_AddCategory then
+	-- Legacy API (Classic Era)
+	InterfaceOptions_AddCategory(frame)
+	
+	-- Handling Peddler's options.
+	SLASH_PEDDLER_COMMAND1 = '/peddler'
+	SlashCmdList['PEDDLER_COMMAND'] = function(command)
+		InterfaceOptionsFrame_OpenToCategory('Peddler')
+	end
+else
+	-- Fallback: just register the slash command to show the frame
+	SLASH_PEDDLER_COMMAND1 = '/peddler'
+	SlashCmdList['PEDDLER_COMMAND'] = function(command)
+		if frame:IsShown() then
+			frame:Hide()
+		else
+			frame:Show()
+		end
+	end
 end

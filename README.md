@@ -7,7 +7,12 @@ WoW addon that allows you to automatically sell any unwanted items, hassle-free!
 n.
 One who travels about selling wares for a living.*
 
-##Description
+**Original Author:** Cartas @ Stitches-HC
+**Repository:** https://github.com/Cartas/Peddler
+**Updated By:** Icewitts - Spineshatter
+**Current Version:** Updated for TBC Classic Anniversary (TBC 2.5.5)
+
+## Description
 
 *Peddler* simply allows you to flag items that you plan to sell, automatically selling them later when you interact with a vendor. It automatically flags grey items you loot to be sold, but you're free to un-flag them.
 

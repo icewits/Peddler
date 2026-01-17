@@ -1,7 +1,13 @@
 local _, Peddler = ...
 
+-- API Compatibility: Container API changes across WoW versions
+-- TBC uses global functions, later versions use C_Container namespace
+local GetContainerNumSlots = C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
+local GetContainerItemInfo = C_Container and C_Container.GetContainerItemInfo or GetContainerItemInfo
+local GetContainerItemLink = C_Container and C_Container.GetContainerItemLink or GetContainerItemLink
+local PickupContainerItem = C_Container and C_Container.PickupContainerItem or PickupContainerItem
+
 -- Assign global functions to locals for optimisation.
-local C_Container = C_Container
 local GetItemInfo = GetItemInfo
 local GetQuestLogItemLink = GetQuestLogItemLink
 local PickupMerchantItem = PickupMerchantItem
@@ -10,6 +16,17 @@ local IsShiftKeyDown = IsShiftKeyDown
 local IsAltKeyDown = IsAltKeyDown
 local UnitClass = UnitClass
 local Baggins = Baggins
+
+-- API Compatibility: IsAddOnLoaded moved to C_AddOns in newer versions
+-- Create wrapper function that checks both old and new API locations
+local function IsAddOnLoaded(addonName)
+	if _G.IsAddOnLoaded then
+		return _G.IsAddOnLoaded(addonName)
+	elseif C_AddOns and C_AddOns.IsAddOnLoaded then
+		return C_AddOns.IsAddOnLoaded(addonName)
+	end
+	return false
+end
 
 local ARMOUR = Peddler.ARMOUR
 local WEAPON = Peddler.WEAPON
@@ -130,7 +147,7 @@ local function peddleGoods()
   local sellDelay = 0
 
   for bagNumber = 0, BAG_COUNT do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local itemID, uniqueItemID, isSoulbound, itemLink = Peddler.getUniqueItemID(bagNumber, slotNumber)
 
@@ -141,7 +158,7 @@ local function peddleGoods()
           itemButton.coins:Hide()
         end
 
-        local itemInfo = C_Container.GetContainerItemInfo(bagNumber, slotNumber)
+        local itemInfo = GetContainerItemInfo(bagNumber, slotNumber)
         local amount = itemInfo.stackCount
 
         local _, _, _, _, _, _, _, _, _, _, price = GetItemInfo(itemLink)
@@ -176,11 +193,11 @@ local function peddleGoods()
           waitAnimationGroup:Play()
 
           waitAnimationGroup:SetScript("OnFinished", function()
-            C_Container.PickupContainerItem(bagNumber, slotNumber)
+            PickupContainerItem(bagNumber, slotNumber)
             PickupMerchantItem()
           end)
         else
-          C_Container.PickupContainerItem(bagNumber, slotNumber)
+          PickupContainerItem(bagNumber, slotNumber)
           PickupMerchantItem()
         end
 
@@ -301,7 +318,7 @@ end
 
 local function markOneBagBags()
   for bagNumber = 0, BAG_COUNT do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local itemButton = _G["OneBagFrameBag" .. bagNumber .. "Item" .. bagsSlotCount - slotNumber + 1]
 
@@ -316,7 +333,7 @@ end
 
 local function markBaudBagBags()
   for bagNumber = 0, BAG_COUNT do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local itemButton = _G["BaudBagSubBag" .. bagNumber .. "Item" .. slotNumber]
       checkItem(bagNumber, slotNumber, itemButton)
@@ -358,7 +375,7 @@ end
 
 local function markArkInventoryBags()
   for bagNumber = 0, BAG_COUNT do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local itemButton = _G["ARKINV_Frame1ScrollContainerBag" .. bagNumber + 1 .. "Item" .. slotNumber]
       -- Required to check for itemButton because ArkInventory changed when it builds the item objects so only the first slot of each bag is available prior to the first time its opened, causing Peddler to get a nil obj for itemButton. /vincentSDSH
@@ -370,7 +387,7 @@ end
 local function markCargBagsNivayaBags()
   local totalSlotCount = 0
   for bagNumber = 0, BAG_COUNT do
-    totalSlotCount = totalSlotCount + C_Container.GetContainerNumSlots(bagNumber)
+    totalSlotCount = totalSlotCount + GetContainerNumSlots(bagNumber)
   end
 
   -- Somehow, Nivaya can have higher slot-numbers than actual bag slots exist...
@@ -394,7 +411,7 @@ end
 local function markMonoBags()
   local totalSlotCount = 0
   for bagNumber = 0, BAG_COUNT do
-    totalSlotCount = totalSlotCount + C_Container.GetContainerNumSlots(bagNumber)
+    totalSlotCount = totalSlotCount + GetContainerNumSlots(bagNumber)
   end
 
   for slotNumber = 1, totalSlotCount do
@@ -410,7 +427,7 @@ end
 
 local function markDerpyBags()
   for bagNumber = 0, BAG_COUNT do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local itemButton = _G["StuffingBag" .. bagNumber .. "_" .. slotNumber]
       checkItem(bagNumber, slotNumber, itemButton)
@@ -421,7 +438,7 @@ end
 -- ElvUI is badly coded, so you'll have to excuse the peculiar code.
 local function markElvUIBags()
   for bagNumber = 0, BAG_COUNT + 1 do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local containerFrameName = "ElvUI_ContainerFrameBag"
       local containerFrameBagNumber = bagNumber - 1
@@ -469,7 +486,7 @@ end
 -- Special thanks to Tymesink from WowInterface for this one.
 local function markfamBagsBags()
   for bagNumber = 0, BAG_COUNT do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local itemButton = _G["famBagsButton_" .. bagNumber .. "_" .. slotNumber]
       checkItem(bagNumber, slotNumber, itemButton)
@@ -479,7 +496,7 @@ end
 
 local function markLUIBags()
   for bagNumber = 0, BAG_COUNT do
-    local bagsSlotCount = C_Container.GetContainerNumSlots(bagNumber)
+    local bagsSlotCount = GetContainerNumSlots(bagNumber)
     for slotNumber = 1, bagsSlotCount do
       local itemButton = _G["LUIBags_Item" .. bagNumber .. "_" .. slotNumber]
       checkItem(bagNumber, slotNumber, itemButton)
@@ -490,7 +507,7 @@ end
 local function markRealUIBags()
   local totalSlotCount = 0
   for bagNumber = 0, BAG_COUNT do
-    totalSlotCount = totalSlotCount + C_Container.GetContainerNumSlots(bagNumber)
+    totalSlotCount = totalSlotCount + GetContainerNumSlots(bagNumber)
   end
 
   -- Somehow, this can have higher slot-numbers than actual bag slots exist...
@@ -517,7 +534,7 @@ local function markNormalBags()
     local container = _G["ContainerFrame" .. containerNumber + 1]
     local combinedBags = _G["ContainerFrameCombinedBags"]
     if (container:IsShown()) then
-      local bagsSlotCount = C_Container.GetContainerNumSlots(containerNumber)
+      local bagsSlotCount = GetContainerNumSlots(containerNumber)
       for slotNumber = 1, bagsSlotCount do
         -- It appears there are two ways of finding items!
         --   Accessing via _G means that bagNumbers are 1-based indices and
@@ -534,7 +551,7 @@ local function markNormalBags()
         checkItem(bagNumber, actualSlotNumber, itemButton)
       end
     elseif (combinedBags and combinedBags:IsShown()) then
-      local bagsSlotCount = C_Container.GetContainerNumSlots(containerNumber)
+      local bagsSlotCount = GetContainerNumSlots(containerNumber)
       for slotNumber = 1, bagsSlotCount do
         local itemButton = _G["ContainerFrame" .. containerNumber + 1 .. "Item" .. bagsSlotCount - slotNumber + 1]
         local actualSlotNumber = itemButton:GetID()
@@ -633,7 +650,7 @@ end
 function Peddler.getUniqueItemID(bagNumber, slotNumber)
 	if bagNumber == nil then return end
 
-  local itemString = C_Container.GetContainerItemLink(bagNumber, slotNumber)
+  local itemString = GetContainerItemLink(bagNumber, slotNumber)
   local itemID, uniqueItemID = parseItemString(itemString)
   local isSoulbound = getIsItemSoulbound(bagNumber, slotNumber)
 
